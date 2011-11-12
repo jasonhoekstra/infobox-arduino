@@ -16,6 +16,7 @@ byte ip[] = { 192,168,2,200 };
 byte server[] = { 199,59,148,87 }; //Twitter
 
 boolean sent = false;
+String host = "";
 
 Client client(server, 80);
 
@@ -40,6 +41,7 @@ void loop()
       client.println("GET /1/statuses/user_timeline.json?screen_name=jasonhoekstra&count=2 HTTP/1.0");
       client.println("Host: api.twitter.com");
       client.println();
+      host = "twitter";
     } 
     else {
       // kf you didn't get a connection to the server:
@@ -52,6 +54,7 @@ void loop()
   // from the server, read them and print them:
   if (client.available()) {
     char c = client.read();
+    Serial.print(host);
     Serial.print(c);
   }
 
@@ -60,11 +63,8 @@ void loop()
     Serial.println();
     Serial.println("disconnecting.");
     client.stop();
-
-    // do nothing forevermore:
-    for(;;)
-      ;
-  }
+    host = "";
+ }
 }
 
 void writeMessage()
