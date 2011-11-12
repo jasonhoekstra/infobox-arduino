@@ -99,7 +99,6 @@ void loop()
 
   // if the server's disconnected, stop the client:
   if (!client.connected() && sent) {
-    Serial.println();
     Serial.println("disconnecting.");
     client.stop();
     host = "";
@@ -129,10 +128,21 @@ void setupLCD()
 
 void checkWeather(String str)
 {
-  if (str.indexOf("<weather>") > 0) {
-    int istart = str.indexOf(">") + 1;
-    int iend = str.lastIndexOf("<") + 1;
-    Serial.println(str.substring(istart, iend));
+  // <temp_f>54.0 F</temp_f>
+  // <wind_mph>5.8</wind_mph> <wind_dir>Northeast</wind_dir>
+  // <visibility_mi>7.00</visibility_mi>
+  
+  if (str.indexOf("<observation_time>") > 0 || str.indexOf("<weather>") > 0 || 
+  str.indexOf("<temp_f>") > 0 || str.indexOf("<wind_mph>") > 0 ||
+  str.indexOf("<wind_dir>") > 0 || str.indexOf("<visibility_mi>") > 0 ) {
+    Serial.println(popString(str));
   }
   
+}
+
+String popString(String str)
+{
+    int istart = str.indexOf(">") + 1;
+    int iend = str.lastIndexOf("<");
+    return str.substring(istart, iend);
 }
