@@ -14,9 +14,9 @@
 byte mac[] = {  0x90, 0xA2, 0xDA, 0x00, 0x8D, 0xB5 };
 byte ip[] = { 192,168,2,200 };
 //byte server[] = { 199,59,148,87 }; //Twitter
-// byte server[] = { 140,90,113,229 }; // NWS
-byte server[] = { 173,203,125,200 }; // jasonhoekstra.com
-
+//byte server[] = { 140,90,113,229 }; // NWS
+//byte server[] = { 173,203,125,200 }; // jasonhoekstra.com
+byte server[] = { 74,125,115,121 }; // slashdot
 
 boolean sent = false;
 String host = "";
@@ -40,15 +40,28 @@ void loop()
 {
   // http://www.weather.gov/xml/current_obs/KSFO.xml
   // 140.90.113.229 /xml/current_obs/KSFO.xml
-  selected = "nws";
-  
-  if (sent == false && selected == "nws") {
-      // if you get a connection, report back via serial:
+  // http://rss.slashdot.org/Slashdot/slashdot - 74.125.115.121
+
+  selected = "slashdot";
+
+  if (sent == false && selected == "slashdot") {
     if (client.connect()) {
       Serial.println("connected");
-      // Make a HTTP request:
-      //client.println("GET /xml/current_obs/KSFO.xml HTTP/1.0");
-      // client.println("Host: www.weather.gov");
+      client.println("GET /Slashdot/slashdot HTTP/1.0");
+      client.println("Host: rss.slashdot.org");
+      client.println();
+      host = "slashdot";
+    } 
+    else {
+      Serial.println("connection failed");
+    }
+    sent = true;
+  }
+    
+  
+  if (sent == false && selected == "nws") {
+    if (client.connect()) {
+      Serial.println("connected");
       client.println("GET /KSFO.xml HTTP/1.0");
       client.println("Host: www.jasonhoekstra.com");
       client.println();
@@ -86,8 +99,10 @@ void loop()
     char c = client.read();
     
     if(c=='\n') {
-      //Serial.println(buffer);
-      checkWeather(buffer);
+      // Serial.println(buffer);
+      checkRSS(buffer);
+      // For NWS
+      //checkWeather(buffer);
       buffer = "";
     } else
     {
@@ -137,11 +152,19 @@ void checkWeather(String str)
   str.indexOf("<wind_dir>") > 0 || str.indexOf("<visibility_mi>") > 0 ) {
     Serial.println(popString(str));
   }
-  
+}
+
+void checkRSS(String str)
+{  
+  if (str.indexOf("<title>") > 0) {
+    Serial.println("title");
+    Serial.println(popString(str));
+  }
 }
 
 String popString(String str)
 {
+    Serial.println("title");
     int istart = str.indexOf(">") + 1;
     int iend = str.lastIndexOf("<");
     return str.substring(istart, iend);
