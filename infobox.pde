@@ -13,10 +13,15 @@
 
 byte mac[] = {  0x90, 0xA2, 0xDA, 0x00, 0x8D, 0xB5 };
 byte ip[] = { 192,168,2,200 };
-byte server[] = { 199,59,148,87 }; //Twitter
+//byte server[] = { 199,59,148,87 }; //Twitter
+// byte server[] = { 140,90,113,229 }; // NWS
+byte server[] = { 173,203,125,200 }; // jasonhoekstra.com
+
 
 boolean sent = false;
 String host = "";
+String buffer = "";
+String selected = "";
 
 Client client(server, 80);
 
@@ -33,7 +38,31 @@ void setup()
 
 void loop()
 {
-  if (sent == false) {
+  // http://www.weather.gov/xml/current_obs/KSFO.xml
+  // 140.90.113.229 /xml/current_obs/KSFO.xml
+  selected = "nws";
+  
+  if (sent == false && selected == "nws") {
+      // if you get a connection, report back via serial:
+    if (client.connect()) {
+      Serial.println("connected");
+      // Make a HTTP request:
+      //client.println("GET /xml/current_obs/KSFO.xml HTTP/1.0");
+      // client.println("Host: www.weather.gov");
+      client.println("GET /KSFO.xml HTTP/1.0");
+      client.println("Host: www.jasonhoekstra.com");
+      client.println();
+      host = "nws";
+    } 
+    else {
+      // kf you didn't get a connection to the server:
+      Serial.println("connection failed");
+    }
+    sent = true;
+  }
+  
+  
+  if (sent == false && selected == "twitter") {
       // if you get a connection, report back via serial:
     if (client.connect()) {
       Serial.println("connected");
@@ -53,17 +82,31 @@ void loop()
   // if there are incoming bytes available 
   // from the server, read them and print them:
   if (client.available()) {
+    
     char c = client.read();
-    Serial.print(host);
-    Serial.print(c);
+    
+    if(c=='\n') {
+      //Serial.println(buffer);
+      checkWeather(buffer);
+      buffer = "";
+    } else
+    {
+      buffer.concat(c);
+    }
+    
+    //Serial.print(c);
   }
 
   // if the server's disconnected, stop the client:
-  if (!client.connected()) {
+  if (!client.connected() && sent) {
     Serial.println();
     Serial.println("disconnecting.");
     client.stop();
     host = "";
+    sent = false;
+    
+    for(;;)
+     ;
  }
 }
 
@@ -84,3 +127,12 @@ void setupLCD()
   //lcd.clear();                  // start with a blank screen
 }
 
+void checkWeather(String str)
+{
+  if (str.indexOf("<weather>") > 0) {
+    int istart = str.indexOf(">") + 1;
+    int iend = str.lastIndexOf("<") + 1;
+    Serial.println(str.substring(istart, iend));
+  }
+  
+}
