@@ -99,7 +99,7 @@ void loop()
     char c = client.read();
     
     if(c=='\n') {
-      // Serial.println(buffer);
+      //Serial.println(buffer);
       checkRSS(buffer);
       // For NWS
       //checkWeather(buffer);
@@ -147,24 +147,22 @@ void checkWeather(String str)
   // <wind_mph>5.8</wind_mph> <wind_dir>Northeast</wind_dir>
   // <visibility_mi>7.00</visibility_mi>
   
-  if (str.indexOf("<observation_time>") > 0 || str.indexOf("<weather>") > 0 || 
-  str.indexOf("<temp_f>") > 0 || str.indexOf("<wind_mph>") > 0 ||
-  str.indexOf("<wind_dir>") > 0 || str.indexOf("<visibility_mi>") > 0 ) {
+  if (str.indexOf("<observation_time>") >= 0 || str.indexOf("<weather>") >= 0 || 
+  str.indexOf("<temp_f>") >= 0 || str.indexOf("<wind_mph>") >= 0 ||
+  str.indexOf("<wind_dir>") >= 0 || str.indexOf("<visibility_mi>") >= 0 ) {
     Serial.println(popString(str));
   }
 }
 
 void checkRSS(String str)
 {  
-  if (str.indexOf("<title>") > 0) {
-    Serial.println("title");
+  if (str.indexOf("<title>") >= 0) {
     Serial.println(popString(str));
   }
 }
 
 String popString(String str)
 {
-    Serial.println("title");
     int istart = str.indexOf(">") + 1;
     int iend = str.lastIndexOf("<");
     return str.substring(istart, iend);
