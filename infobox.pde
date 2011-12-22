@@ -8,7 +8,7 @@
 #include <Ethernet.h>
 #include <LiquidCrystal.h>
 
-LiquidCrystal lcd(1,8,3,5,6,9);  // let's try less pins - LiquidCrystal(rs, enable, d4, d5, d6, d7) 
+LiquidCrystal lcd(2,8,3,5,6,9);  // let's try less pins - LiquidCrystal(rs, enable, d4, d5, d6, d7) 
 int backLight = 7;    // pin 0 will control the backlight
 
 byte mac[] = {  0x90, 0xA2, 0xDA, 0x00, 0x8D, 0xB5 };
@@ -36,16 +36,28 @@ void setup()
   Serial.println("connecting...");
     Serial.begin(9600);
   pinMode(backLight, OUTPUT);
-  digitalWrite(backLight, HIGH); // turn backlight on. Replace 'HIGH' with 'LOW' to turn it off.
+  digitalWrite(backLight, HIGH);
   delay(2000);
-  lcd.begin(20,4);              // columns, rows.  use 16,2 for a 16x2 LCD, etc.
-  lcd.clear();                  // start with a blank screen
+  lcd.begin(20,4);
+  lcd.clear();
+    lcd.setCursor(2,1);
+  lcd.print("--- infobox ---");
+    lcd.setCursor(0,3);
+  lcd.print("Obtaining IP...");
+  delay(50000);
+  
+    lcd.clear();                  // start with a blank screen
     lcd.setCursor(0,0);           // set cursor to column 0, row 0 (the first row)
-  lcd.print("tinybox");    // change thi s text to whatever you like. keep it clean.
+  /* lcd.print("Now (12/21 @ 13:16)");    // change thi s text to whatever you like. keep it clean.
     lcd.setCursor(0,1);           // set cursor to column 0, row 0 (the first row)
-  lcd.print("Jason Hoekstra");    // change thi s text to whatever you like. keep it clean.
+  lcd.print("Partly Cloudy");    // change thi s text to whatever you like. keep it clean.
     lcd.setCursor(0,2);           // set cursor to column 0, row 0 (the first row)
-  lcd.print("Made December 2011");    // change thi s text to whatever you like. keep it clean.
+  lcd.print("Temp: 58F Vis: 10mi");    // change thi s text to whatever you like. keep it clean.
+    lcd.setCursor(0,3);           // set cursor to column 0, row 0 (the first row)
+  lcd.print("Wind: 3mph East");    // change thi s text to whatever you like. keep it clean. */
+  
+  lcd.print("Tonight: Sunny. Highs in the mid 50s to lower 60s. Northeast winds 5 to 15 mph.");
+  
 }
 
 void loop()
