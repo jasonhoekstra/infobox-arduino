@@ -13,17 +13,19 @@ if (empty($weather)) {
   apc_store('weather', $weather, 300);
 }
 
+ //krumo($weather);
+  
 $output = getCurrent($weather);
 
 print $output[0];
-print '<br/>';
+print '\n';
 print $output[1];
-print '<br/>';
+print '\n';
 print $output[2];
-print '<br/>';
+print '\n';
 print $output[3];
 
-// print json_encode($output);
+//print json_encode($output);
 
 function getCurrent($weather) {
   $current_observation = $weather->{'current_observation'};
@@ -37,7 +39,7 @@ function getCurrent($weather) {
   $wind_mph = $current_observation->{'wind_mph'};
   $wind_dir = $current_observation->{'wind_dir'};
 
-  krumo($weather);
+
 
   //$output[0] = 'Now '.$observation_time['month'].'/'.$observation_time['day'].' @ '.$time_string;
   $output[0] = balanceString('Now ',$observation_time['month'].'/'.$observation_time['day'].' @ '.$time_string,20);
@@ -47,5 +49,7 @@ function getCurrent($weather) {
   
   return $output;
 }
+
+
 
 ?>

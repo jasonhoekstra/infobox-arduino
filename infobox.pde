@@ -13,41 +13,27 @@ LiquidCrystal lcd(3,8,4,5,6,9);  // (rs, enable, d4, d5, d6, d7)
 int backLight = 7;
 int pointer = 0;
 static boolean rotating=false;
+static boolean sent=false;
+String buffer;
 
 byte mac[] = { 
   0x90, 0xA2, 0xDA, 0x00, 0x8D, 0xB5 };
 byte server[] = { 
-  173,203,125,200 }; // jasonhoekstra.com
-static DhcpState prevState = DhcpStateNone;
-static unsigned long prevTime = 0;
-byte* ipAddr;
-byte* gatewayAddr;
-
-boolean sent = false;
-String host = "";
-String buffer = "";
-String selected = "";
-
+  192,168,1,65 };
+  //173,203,125,200 }; // jasonhoekstra.com  //infoserver/weather.php
 Client client(server, 80);
 
 void setup()
 {
-  //pinMode(2, INPUT);  
+  Serial.begin(9600);
+  
   pinMode(2, INPUT); 
   digitalWrite(2, HIGH);
   attachInterrupt(0, changeLCD, CHANGE);
 
-  // start the Ethernet connection:
-  //Ethernet.begin(mac, ip);
-  // start the serial library:
-  Serial.begin(9600);
-  // give the Ethernet shield a second to initialize:
   delay(1000);
-  Serial.println("connecting...");
-  Serial.begin(9600);
   pinMode(backLight, OUTPUT);
   digitalWrite(backLight, HIGH);
-  delay(2000);
   lcd.begin(20,4);
   lcd.clear();
   lcd.setCursor(2,1);
@@ -58,25 +44,14 @@ void setup()
 
   lcd.setCursor(0,3);
   lcd.print("Finding IP address..");
-  int started = EthernetDHCP.begin(mac);
-  
-  
+  EthernetDHCP.begin(mac); // this is a blocking call
+
   lcd.setCursor(0,3);
   lcd.print("IP:");
   const byte* ipAddr = EthernetDHCP.ipAddress();
   lcd.print(ip_to_str(ipAddr));
-  lcd.print("         ");
-  
+  lcd.print("         "); // just in case there is junk left over
   delay(5000);
-  
-  
-  //lcd.print("Finding IP address..");
-
-  //lcd.clear();                  // start with a blank screen
-  //lcd.setCursor(0,0);           // set cursor to column 0, row 0 (the first row)
-
-  //lcd.print("Tonight: Sunny. Highs in the mid 50s to lower 60s. Northeast winds 5 to 15 mph.");
-
 }
 
 void changeLCD()
@@ -91,55 +66,53 @@ void loop()
     delay(500);
     lcd.clear();
     displayMessage(pointer);
+
     pointer++;
+
     if (pointer > 3)
       pointer=0;
+
     rotating=false;
   }
 
-  //Serial.println(ipAddr);
-  if (!ipAddr) {
-    //DhcpState state = EthernetDHCP.poll();
-    DhcpState state = prevState;
+  //selected = "slashdot";
 
-    if (prevState != state) {
-
-      switch (state) {
-      case DhcpStateDiscovering:
-        lcd.setCursor(0,3);
-        lcd.print("Finding DHCP...");
-        break;
-      case DhcpStateRequesting:
-        lcd.setCursor(0,3);
-        lcd.print("Requesting lease...");
-        break;
-      case DhcpStateLeased: 
-        {
-          lcd.setCursor(0,3);
-          lcd.print("Obtained lease!");
-          delay(5000);
-          lcd.setCursor(0,3);
-          lcd.print("IP: ");
-          lcd.print(ip_to_str(ipAddr));
-          delay(5000);
-
-          const byte* ipAddr = EthernetDHCP.ipAddress();
-          const byte* gatewayAddr = EthernetDHCP.gatewayIpAddress();
-
-          break;
-        }
-      }
+  if (sent == false) {
+    if (client.connect()) {
+      Serial.println("connected");
+      client.println("GET /infoserver/weather.php HTTP/1.0");
+      //client.println("Host: infobox.jasonhoekstra.com");
+      client.println();
+      //host = "slashdot";
     } 
-    else if (state != DhcpStateLeased && millis() - prevTime > 300) {
-      prevTime = millis();
-      Serial.print('.'); 
-    } 
-    else if (state == DhcpStateLeased) {
-      char hostName[512];
-      int length = 0;
+    else {
+      Serial.println("connection failed");
     }
-
+    sent = true;
   }
+
+  if (client.available()) {
+    char c = client.read();
+    buffer.concat(c);
+    Serial.print(c);
+  }
+  
+  
+
+  // if the server's disconnected, stop the client:
+  if (!client.connected() && sent) {
+    Serial.println("disconnecting.");
+    client.stop();
+    
+    Serial.print(buffer);
+
+    //host = "";
+    sent = false;
+
+    for(;;)
+      ;
+  }
+
 
 }
 
@@ -173,15 +146,4 @@ const char* ip_to_str(const uint8_t* ipAddr)
   return buf;
 }
 
-String fillString(String str)
-{
-  if (str.length() < 20) {
-    int fill = 20 - str.length();
-    for (int i=0; fill < i; i++) {
-      str = str + ' ';
-    }
-  }
-  
-  return str;
-  
-}
+
