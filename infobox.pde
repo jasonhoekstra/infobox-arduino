@@ -8,13 +8,13 @@
 #include <Ethernet.h>
 #include <LiquidCrystal.h>
 
-LiquidCrystal lcd(2,8,3,5,6,9);  // let's try less pins - LiquidCrystal(rs, enable, d4, d5, d6, d7) 
-int backLight = 7;    // pin 0 will control the backlight
+LiquidCrystal lcd(3,8,4,5,6,9);  // (rs, enable, d4, d5, d6, d7) 
+int backLight = 7;
+int counter = 0;
+static boolean rotating=false;
 
 byte mac[] = {  0x90, 0xA2, 0xDA, 0x00, 0x8D, 0xB5 };
 byte ip[] = { 192,168,2,200 };
-//byte server[] = { 199,59,148,87 }; //Twitter
-//byte server[] = { 140,90,113,229 }; // NWS
 //byte server[] = { 173,203,125,200 }; // jasonhoekstra.com
 byte server[] = { 74,125,115,121 }; // slashdot
 
@@ -27,6 +27,11 @@ Client client(server, 80);
 
 void setup()
 {
+  //pinMode(2, INPUT);  
+  pinMode(2, INPUT); 
+  digitalWrite(2, HIGH);
+  attachInterrupt(0, changeLCD, CHANGE);
+  
   // start the Ethernet connection:
   Ethernet.begin(mac, ip);
   // start the serial library:
@@ -44,7 +49,7 @@ void setup()
   lcd.print("--- infobox ---");
     lcd.setCursor(0,3);
   lcd.print("Obtaining IP...");
-  delay(50000);
+  delay(5000);
   
     lcd.clear();                  // start with a blank screen
     lcd.setCursor(0,0);           // set cursor to column 0, row 0 (the first row)
@@ -60,136 +65,27 @@ void setup()
   
 }
 
+void changeLCD()
+{  
+  rotating=true;
+  delay(5);
+}
+
 void loop()
 {
-  // http://www.weather.gov/xml/current_obs/KSFO.xml
-  // 140.90.113.229 /xml/current_obs/KSFO.xml
-  // http://rss.slashdot.org/Slashdot/slashdot - 74.125.115.121
+     while(rotating)
+  {
+    delay(2);  // debounce by waiting 2 milliseconds
+               // (Just one line of code for debouncing)
+    lcd.clear();
+    lcd.print(counter);
+    counter++;
 
-  selected = "slashdot";
 
-  if (sent == false && selected == "slashdot") {
-    if (client.connect()) {
-      Serial.println("connected");
-      client.println("GET /Slashdot/slashdot HTTP/1.0");
-      client.println("Host: rss.slashdot.org");
-      client.println();
-      host = "slashdot";
-    } 
-    else {
-      Serial.println("connection failed");
-    }
-    sent = true;
-  }
-    
-  
-  if (sent == false && selected == "nws") {
-    if (client.connect()) {
-      Serial.println("connected");
-      client.println("GET /KSFO.xml HTTP/1.0");
-      client.println("Host: www.jasonhoekstra.com");
-      client.println();
-      host = "nws";
-    } 
-    else {
-      // kf you didn't get a connection to the server:
-      Serial.println("connection failed");
-    }
-    sent = true;
-  }
-  
-  
-  if (sent == false && selected == "twitter") {
-      // if you get a connection, report back via serial:
-    if (client.connect()) {
-      Serial.println("connected");
-      // Make a HTTP request:
-      client.println("GET /1/statuses/user_timeline.json?screen_name=jasonhoekstra&count=2 HTTP/1.0");
-      client.println("Host: api.twitter.com");
-      client.println();
-      host = "twitter";
-    } 
-    else {
-      // kf you didn't get a connection to the server:
-      Serial.println("connection failed");
-    }
-    sent = true;
-  }
-  
-  // if there are incoming bytes available 
-  // from the server, read them and print them:
-  if (client.available()) {
-    
-    char c = client.read();
-    
-    if(c=='\n') {
-      //Serial.println(buffer);
-      //Serial.println("===========================");
-      
-      checkRSS(buffer);
-      // For NWS
-      //checkWeather(buffer);
-      buffer = "";
-    } else
-    {
-      buffer.concat(c);
-    }
-    
-    //Serial.print(c);
+    rotating=false; // Reset the flag
+
   }
 
-  // if the server's disconnected, stop the client:
-  if (!client.connected() && sent) {
-    Serial.println("disconnecting.");
-    client.stop();
-    host = "";
-    sent = false;
-    
-    for(;;)
-     ;
- }
 }
 
-void writeMessage()
-{
-  //lcd.setCursor(0,0);           // set cursor to column 0, row 0 (the first row)
-  //lcd.print("tinybox");    // change this text to whatever you like. keep it clean.
-  //lcd.setCursor(0,1);           // set cursor to column 0, row 1
-  //lcd.print("version 0.1");
-}
 
-void setupLCD()
-{
-  //pinMode(backLight, OUTPUT);
-  //digitalWrite(backLight, HIGH); // turn backlight on. Replace 'HIGH' with 'LOW' to turn it off.
-  //delay(2000);
-  //lcd.begin(16,2);              // columns, rows.  use 16,2 for a 16x2 LCD, etc.
-  //lcd.clear();                  // start with a blank screen
-}
-
-void checkWeather(String str)
-{
-  // <temp_f>54.0 F</temp_f>
-  // <wind_mph>5.8</wind_mph> <wind_dir>Northeast</wind_dir>
-  // <visibility_mi>7.00</visibility_mi>
-  
-  if (str.indexOf("<observation_time>") >= 0 || str.indexOf("<weather>") >= 0 || 
-  str.indexOf("<temp_f>") >= 0 || str.indexOf("<wind_mph>") >= 0 ||
-  str.indexOf("<wind_dir>") >= 0 || str.indexOf("<visibility_mi>") >= 0 ) {
-    Serial.println(popString(str));
-  }
-}
-
-void checkRSS(String str)
-{  
-  if (str.indexOf("<title>") >= 0) {
-    Serial.println(popString(str));
-  }
-}
-
-String popString(String str)
-{
-    int istart = str.indexOf(">") + 1;
-    int iend = str.lastIndexOf("<");
-    return str.substring(istart, iend);
-}
