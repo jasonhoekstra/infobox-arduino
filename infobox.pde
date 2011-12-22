@@ -10,7 +10,7 @@
 
 LiquidCrystal lcd(3,8,4,5,6,9);  // (rs, enable, d4, d5, d6, d7) 
 int backLight = 7;
-int counter = 0;
+int pointer = 0;
 static boolean rotating=false;
 
 byte mac[] = {  0x90, 0xA2, 0xDA, 0x00, 0x8D, 0xB5 };
@@ -45,21 +45,14 @@ void setup()
   delay(2000);
   lcd.begin(20,4);
   lcd.clear();
-    lcd.setCursor(2,1);
+  lcd.setCursor(2,1);
   lcd.print("--- infobox ---");
-    lcd.setCursor(0,3);
+  lcd.setCursor(0,3);
   lcd.print("Obtaining IP...");
   delay(5000);
   
     lcd.clear();                  // start with a blank screen
     lcd.setCursor(0,0);           // set cursor to column 0, row 0 (the first row)
-  /* lcd.print("Now (12/21 @ 13:16)");    // change thi s text to whatever you like. keep it clean.
-    lcd.setCursor(0,1);           // set cursor to column 0, row 0 (the first row)
-  lcd.print("Partly Cloudy");    // change thi s text to whatever you like. keep it clean.
-    lcd.setCursor(0,2);           // set cursor to column 0, row 0 (the first row)
-  lcd.print("Temp: 58F Vis: 10mi");    // change thi s text to whatever you like. keep it clean.
-    lcd.setCursor(0,3);           // set cursor to column 0, row 0 (the first row)
-  lcd.print("Wind: 3mph East");    // change thi s text to whatever you like. keep it clean. */
   
   lcd.print("Tonight: Sunny. Highs in the mid 50s to lower 60s. Northeast winds 5 to 15 mph.");
   
@@ -68,24 +61,42 @@ void setup()
 void changeLCD()
 {  
   rotating=true;
-  delay(5);
 }
 
 void loop()
 {
-     while(rotating)
+  while(rotating)
   {
-    delay(2);  // debounce by waiting 2 milliseconds
-               // (Just one line of code for debouncing)
+    delay(500); // debounce by waiting 2 milliseconds
     lcd.clear();
-    lcd.print(counter);
-    counter++;
-
-
+    displayMessage(pointer);
+    pointer++;
+    if (pointer > 3)
+      pointer=0;
+    
     rotating=false; // Reset the flag
-
   }
-
 }
 
-
+void displayMessage(int i) 
+{
+  lcd.clear();
+   lcd.setCursor(0,0);
+  lcd.print("Change to:");
+  lcd.setCursor(0,2);
+  
+  switch (i) {
+    case 0:
+      lcd.print("Weather");
+      break;
+    case 1: 
+      lcd.print("Slashdot");
+      break;
+    case 2: 
+      lcd.print("Twitter");
+      break;
+    case 3: 
+      lcd.print("Market");
+      break;
+  }
+}
