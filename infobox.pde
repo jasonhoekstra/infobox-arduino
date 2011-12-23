@@ -12,9 +12,13 @@
 LiquidCrystal lcd(3,8,4,5,6,9);  // (rs, enable, d4, d5, d6, d7) 
 int backLight = 7;
 int pointer = 0;
+unsigned long changedTime = 0;
+
 static boolean rotating=false;
 static boolean sent=false;
-String buffer;
+static boolean update=false;
+static boolean receiving=false;
+String buffer = "";
 
 byte mac[] = { 
   0x90, 0xA2, 0xDA, 0x00, 0x8D, 0xB5 };
@@ -23,9 +27,9 @@ byte server[] = {
   //173,203,125,200 }; // jasonhoekstra.com  //infoserver/weather.php
 Client client(server, 80);
 
-void setup()
-{
+void setup() {
   Serial.begin(9600);
+  lcd.begin(20,4);
   
   pinMode(2, INPUT); 
   digitalWrite(2, HIGH);
@@ -34,13 +38,12 @@ void setup()
   delay(1000);
   pinMode(backLight, OUTPUT);
   digitalWrite(backLight, HIGH);
-  lcd.begin(20,4);
   lcd.clear();
   lcd.setCursor(2,1);
   lcd.print("--- infobox ---");
   lcd.setCursor(0,3);
   lcd.print("Booting up...");
-  delay(5000);
+  ////////////////////////////////////////////////delay(5000);
 
   lcd.setCursor(0,3);
   lcd.print("Finding IP address..");
@@ -51,99 +54,151 @@ void setup()
   const byte* ipAddr = EthernetDHCP.ipAddress();
   lcd.print(ip_to_str(ipAddr));
   lcd.print("         "); // just in case there is junk left over
-  delay(5000);
+  /////////////////////////////////////////////delay(5000);
 }
 
-void changeLCD()
-{  
+void changeLCD() {  
   rotating=true;
 }
 
-void loop()
-{
-  while(rotating)
-  {
+void loop() {
+  while(rotating) {
     delay(500);
     lcd.clear();
-    displayMessage(pointer);
 
     pointer++;
-
     if (pointer > 3)
       pointer=0;
 
+    displayMessage(pointer);
+
     rotating=false;
+    changedTime = millis()/1000;
+    update=true;
   }
-
-  //selected = "slashdot";
-
-  if (sent == false) {
-    if (client.connect()) {
-      Serial.println("connected");
-      client.println("GET /infoserver/weather.php HTTP/1.0");
-      //client.println("Host: infobox.jasonhoekstra.com");
-      client.println();
-      //host = "slashdot";
-    } 
-    else {
-      Serial.println("connection failed");
-    }
-    sent = true;
+  
+  if (update && (changedTime+3) < (millis() / 1000)) {
+    lcd.clear();
+    lcd.setCursor(0,0);
+    lcd.print("Updating ");
+    lcd.print(getService(pointer));
+    startRetrieveInfo(pointer);
+    update = false;    
   }
-
+  
   if (client.available()) {
     char c = client.read();
-    buffer.concat(c);
     Serial.print(c);
+    if (!receiving) {
+      if (c == '*') {
+        c = client.read();
+        if (c == 'P') {
+          c = client.read();
+          if (c == 'A') {
+          c = client.read();
+            if (c == 'G') {
+              c = client.read();
+              if (c == 'E') {
+                receiving = true;
+              }
+            }
+          }
+        }
+      }
+    }      
+    else {
+      buffer.concat(c);
+    }
   }
   
-  
-
-  // if the server's disconnected, stop the client:
   if (!client.connected() && sent) {
-    Serial.println("disconnecting.");
-    client.stop();
-    
-    Serial.print(buffer);
-
-    //host = "";
     sent = false;
-
-    for(;;)
-      ;
+    lcd.clear();
+    Serial.println(buffer);
+    if (buffer.length() > 0) { 
+      writeString(buffer);
+    }
+    buffer="";
+    client.stop();
   }
-
-
 }
 
-void displayMessage(int i) 
-{
+void displayMessage(int i) {
   lcd.clear();
   lcd.setCursor(0,0);
   lcd.print("Change to:");
   lcd.setCursor(0,2);
-
-  switch (i) {
-  case 0:
-    lcd.print("Weather");
-    break;
-  case 1: 
-    lcd.print("Slashdot");
-    break;
-  case 2: 
-    lcd.print("Twitter");
-    break;
-  case 3: 
-    lcd.print("Market");
-    break;
-  }
+  lcd.print(getService(i));  
 }
 
-const char* ip_to_str(const uint8_t* ipAddr)
-{
+const char* ip_to_str(const uint8_t* ipAddr) {
   static char buf[16];
   sprintf(buf, "%d.%d.%d.%d\0", ipAddr[0], ipAddr[1], ipAddr[2], ipAddr[3]);
   return buf;
 }
 
+String getService(int i) {
+  switch (i) {
+  case 0:
+    return "Weather";
+    break;
+  case 1: 
+    return "Slashdot";
+    break;
+  case 2: 
+    return "Twitter";
+    break;
+  case 3: 
+    return "Market";
+    break;
+  }  
+}
 
+void startRetrieveInfo(int i) {
+  if (sent == false) {
+    sent = true;
+    if (client.connect()) {
+      Serial.println("connected");
+      
+      switch (i) {
+        case 0:
+          client.println("GET /infoserver/weather.php HTTP/1.0");
+          break;
+        case 1: 
+          client.println("GET /infoserver/slashdot.php HTTP/1.0");
+          break;
+        case 2: 
+          client.println("GET /infoserver/twitter.php HTTP/1.0");
+          break;
+        case 3: 
+          client.println("GET /infoserver/market.php HTTP/1.0");
+          break;
+      }  
+      
+      client.println("Host: infobox.jasonhoekstra.com");
+      client.println();
+      //host = "slashdot";
+    }    
+  }  
+}
+
+void writeString(String str) {
+  lcd.clear();
+  lcd.setCursor(0,0);
+  Serial.println("writeString");
+  Serial.println(str.length());
+  
+  if (str.length() < 21) {
+    lcd.print(str);
+  }
+  else {
+    int itrs = str.length() / 20;
+    Serial.println(itrs);
+    if (itrs > 3) { itrs=3; }
+    for (int i=0; i<=itrs; i++) {
+      lcd.setCursor(0,i);
+      lcd.print(str.substring((i*20), (i*20)+20));   
+      Serial.println(str.substring((i*20), (i*20)+20));
+    }
+  }
+}

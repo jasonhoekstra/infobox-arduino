@@ -17,12 +17,13 @@ if (empty($weather)) {
   
 $output = getCurrent($weather);
 
+print '*PAGE';
 print $output[0];
-print '\n';
+print '\r';
 print $output[1];
-print '\n';
+print '\r';
 print $output[2];
-print '\n';
+print '\r';
 print $output[3];
 
 //print json_encode($output);
