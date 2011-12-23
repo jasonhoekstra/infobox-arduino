@@ -19,7 +19,7 @@ static boolean sent=false;
 static boolean update=false;
 static boolean receiving=false;
 String buffer = "";
-char* menuItems[] = {"","","","","","","","","",""};
+char* displayItems[] = {"","","","",""};
 
 byte mac[] = { 
   0x90, 0xA2, 0xDA, 0x00, 0x8D, 0xB5 };
@@ -89,7 +89,7 @@ void loop() {
   
   if (client.available()) {
     char c = client.read();
-    Serial.print(c);
+    //Serial.print(c);
     if (!receiving) {
       if (c == '#') {
         c = client.read();
@@ -110,9 +110,10 @@ void loop() {
     sent=false;
     receiving=false;
     lcd.clear();
-    Serial.println(buffer);
+    //Serial.println(buffer);
     if (buffer.length() > 0) { 
       writeString(buffer);
+      extractDisplayString(buffer);
     }
     buffer="";
     client.stop();
@@ -177,19 +178,56 @@ void writeString(String str) {
     byte chars=0;
     for (byte i=0; i<str.length() && i<80; i++)
     {
-      if (str[i]=='#') {
+      if (str[i]=='^') {
         line++;
         chars=0;
         lcd.setCursor(0,line);
       } else {
-        lcd.print(str[i]);
         if (chars==20) {
           chars=0;
           line++;
           lcd.setCursor(0,line);
-        }        
+        } 
+        else { 
+          chars++; 
+        }    
+        lcd.print(str[i]);    
       }
     }
+  }
+}
+
+void extractDisplayString(String str) {
+  
+  for (byte clean=0; clean < 5; clean++) {
+    displayItems[clean]="";
+  }
+  
+  byte charpos = 0;
+  byte disppos = 0;
+  String temp = "";
+  
+  if (str.length() > 0) {
+    for (byte index=0; index<str.length() && index<400 && disppos<5; index++) {
+      if (str[index]=='|') {
+        temp.toCharArray(displayItems[disppos], temp.length()); 
+        charpos=0;
+        disppos++;
+        Serial.print("Writing ");
+        Serial.println(disppos);
+        Serial.println(temp);
+      }
+      else {
+        temp=temp+str[index];
+      }
+    }
+    temp.toCharArray(displayItems[disppos], temp.length());  
+    
+    Serial.println(displayItems[0]);
+    Serial.println(displayItems[1]);
+    Serial.println(displayItems[2]);
+    Serial.println(displayItems[3]);
+    Serial.println(displayItems[4]);
   }
 }
 

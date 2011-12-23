@@ -14,17 +14,26 @@ if (empty($weather)) {
 }
 
  //krumo($weather);
+//krumo($weather->forecast->txt_forecast->forecastday[0]);
   
 $output = getCurrent($weather);
 
 print '#@!';
 print $output[0];
-print '#';
+print '^';
 print $output[1];
-print '#';
+print '^';
 print $output[2];
-print '#';
+print '^';
 print $output[3];
+print '|';
+print getForecast($weather, 0);
+print '|';
+print getForecast($weather, 1);
+print '|';
+print getForecast($weather, 2);
+print '|';
+print getForecast($weather, 3);
 
 //print json_encode($output);
 
@@ -48,4 +57,16 @@ function getCurrent($weather) {
   
   return $output;
 }
+
+function getForecast($weather, $day) {
+  $forecast = $weather->forecast->txt_forecast->forecastday[$day];
+  $title = $forecast->title;
+  $text = $forecast->fcttext;
+  $output = $title.': '.$text;
+ 
+  return substr($output, 0, 80);
+}
+
+
+
 ?>
