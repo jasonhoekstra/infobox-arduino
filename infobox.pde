@@ -19,6 +19,7 @@ static boolean sent=false;
 static boolean update=false;
 static boolean receiving=false;
 String buffer = "";
+char* menuItems[] = {"","","","","","","","","",""};
 
 byte mac[] = { 
   0x90, 0xA2, 0xDA, 0x00, 0x8D, 0xB5 };
@@ -129,6 +130,8 @@ void displayMessage(int i) {
   lcd.print("Change to:");
   lcd.setCursor(0,2);
   lcd.print(getService(i));  
+  lcd.setCursor(0,3);
+  lcd.print(memoryTest());
 }
 
 const char* ip_to_str(const uint8_t* ipAddr) {
@@ -182,6 +185,20 @@ void startRetrieveInfo(int i) {
   }  
 }
 
+void getPage(String page) {
+  if (sent == false) {
+    sent = true;
+    if (client.connect()) {
+          client.print("GET /infoserver/");
+          client.print(page);
+          client.println(" HTTP/1.0");
+    }  
+    client.println("Host: infobox.jasonhoekstra.com");
+    client.println();
+    }    
+  }  
+}
+
 void writeString(String str) {
   lcd.clear();
   lcd.setCursor(0,0);
@@ -202,3 +219,22 @@ void writeString(String str) {
     }
   }
 }
+
+// this function will return the number of bytes currently free in RAM
+int memoryTest() {
+  int byteCounter = 0; // initialize a counter
+  byte *byteArray; // create a pointer to a byte array
+  // More on pointers here: http://en.wikipedia.org/wiki/Pointer#C_pointers
+
+  // use the malloc function to repeatedly attempt allocating a certain number of bytes to memory
+  // More on malloc here: http://en.wikipedia.org/wiki/Malloc
+  while ( (byteArray = (byte*) malloc (byteCounter * sizeof(byte))) != NULL ) {
+    byteCounter++; // if allocation was successful, then up the count for the next try
+    free(byteArray); // free memory after allocating it
+  }
+  
+  free(byteArray); // also free memory after the function finishes
+  return byteCounter; // send back the highest number of bytes successfully allocated
+}
+
+
