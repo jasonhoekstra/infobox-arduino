@@ -78,12 +78,12 @@ void loop() {
     update=true;
   }
   
-  if (update && (changedTime+3) < (millis() / 1000)) {
+  if (update && (changedTime+2) < (millis() / 1000)) {
     lcd.clear();
     lcd.setCursor(0,0);
     lcd.print("Updating ");
     lcd.print(getService(pointer));
-    startRetrieveInfo(pointer);
+    getPage(getService(pointer).toLowerCase());
     update = false;    
   }
   
@@ -91,18 +91,12 @@ void loop() {
     char c = client.read();
     Serial.print(c);
     if (!receiving) {
-      if (c == '*') {
+      if (c == '#') {
         c = client.read();
-        if (c == 'P') {
+        if (c == '@') {
           c = client.read();
-          if (c == 'A') {
-          c = client.read();
-            if (c == 'G') {
-              c = client.read();
-              if (c == 'E') {
-                receiving = true;
-              }
-            }
+          if (c == '!') {
+            receiving = true;
           }
         }
       }
@@ -124,14 +118,14 @@ void loop() {
   }
 }
 
-void displayMessage(int i) {
+void displayMessage(byte i) {
   lcd.clear();
   lcd.setCursor(0,0);
   lcd.print("Change to:");
   lcd.setCursor(0,2);
   lcd.print(getService(i));  
   lcd.setCursor(0,3);
-  lcd.print(memoryTest());
+  //lcd.print(memoryTest());
 }
 
 const char* ip_to_str(const uint8_t* ipAddr) {
@@ -140,7 +134,7 @@ const char* ip_to_str(const uint8_t* ipAddr) {
   return buf;
 }
 
-String getService(int i) {
+String getService(byte i) {
   switch (i) {
   case 0:
     return "Weather";
@@ -157,69 +151,58 @@ String getService(int i) {
   }  
 }
 
-void startRetrieveInfo(int i) {
-  if (sent == false) {
-    sent = true;
-    if (client.connect()) {
-      Serial.println("connected");
-      
-      switch (i) {
-        case 0:
-          client.println("GET /infoserver/weather.php HTTP/1.0");
-          break;
-        case 1: 
-          client.println("GET /infoserver/slashdot.php HTTP/1.0");
-          break;
-        case 2: 
-          client.println("GET /infoserver/twitter.php HTTP/1.0");
-          break;
-        case 3: 
-          client.println("GET /infoserver/market.php HTTP/1.0");
-          break;
-      }  
-      
-      client.println("Host: infobox.jasonhoekstra.com");
-      client.println();
-      //host = "slashdot";
-    }    
-  }  
-}
-
 void getPage(String page) {
   if (sent == false) {
     sent = true;
     if (client.connect()) {
           client.print("GET /infoserver/");
           client.print(page);
-          client.println(" HTTP/1.0");
+          client.println(".php HTTP/1.0");
     }  
-    client.println("Host: infobox.jasonhoekstra.com");
-    client.println();
-    }    
-  }  
-}
+  client.println("Host: infobox.jasonhoekstra.com");
+  client.println();
+  }    
+}  
 
 void writeString(String str) {
   lcd.clear();
   lcd.setCursor(0,0);
-  Serial.println("writeString");
-  Serial.println(str.length());
   
   if (str.length() < 21) {
     lcd.print(str);
   }
   else {
-    int itrs = str.length() / 20;
+    byte line=0;
+    byte chars=0;
+    for (byte i=0; i<str.length() && i<80; i++)
+    {
+      if (str[i]=='#') {
+        line++;
+        chars=0;
+        lcd.setCursor(0,line);
+      } else {
+        lcd.print(str[i]);
+        if (chars==20) {
+          chars=0;
+          line++;
+          lcd.setCursor(0,line);
+        }        
+      }
+    }
+  }
+
+/*    int itrs = str.length() / 20;
     Serial.println(itrs);
     if (itrs > 3) { itrs=3; }
-    for (int i=0; i<=itrs; i++) {
+    for (byte i=0; i<=itrs; i++) {
       lcd.setCursor(0,i);
       lcd.print(str.substring((i*20), (i*20)+20));   
       Serial.println(str.substring((i*20), (i*20)+20));
     }
-  }
+//  } */
 }
 
+/*
 // this function will return the number of bytes currently free in RAM
 int memoryTest() {
   int byteCounter = 0; // initialize a counter
@@ -236,5 +219,4 @@ int memoryTest() {
   free(byteArray); // also free memory after the function finishes
   return byteCounter; // send back the highest number of bytes successfully allocated
 }
-
-
+*/

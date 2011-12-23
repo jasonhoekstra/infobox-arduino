@@ -17,13 +17,13 @@ if (empty($weather)) {
   
 $output = getCurrent($weather);
 
-print '*PAGE';
+print '#@!';
 print $output[0];
-print '\r';
+print '#';
 print $output[1];
-print '\r';
+print '#';
 print $output[2];
-print '\r';
+print '#';
 print $output[3];
 
 //print json_encode($output);
@@ -40,8 +40,6 @@ function getCurrent($weather) {
   $wind_mph = $current_observation->{'wind_mph'};
   $wind_dir = $current_observation->{'wind_dir'};
 
-
-
   //$output[0] = 'Now '.$observation_time['month'].'/'.$observation_time['day'].' @ '.$time_string;
   $output[0] = balanceString('Now ',$observation_time['month'].'/'.$observation_time['day'].' @ '.$time_string,20);
   $output[1] = $current_observation->{'weather'};
@@ -50,7 +48,4 @@ function getCurrent($weather) {
   
   return $output;
 }
-
-
-
 ?>
