@@ -107,7 +107,8 @@ void loop() {
   }
   
   if (!client.connected() && sent) {
-    sent = false;
+    sent=false;
+    receiving=false;
     lcd.clear();
     Serial.println(buffer);
     if (buffer.length() > 0) { 
@@ -190,16 +191,6 @@ void writeString(String str) {
       }
     }
   }
-
-/*    int itrs = str.length() / 20;
-    Serial.println(itrs);
-    if (itrs > 3) { itrs=3; }
-    for (byte i=0; i<=itrs; i++) {
-      lcd.setCursor(0,i);
-      lcd.print(str.substring((i*20), (i*20)+20));   
-      Serial.println(str.substring((i*20), (i*20)+20));
-    }
-//  } */
 }
 
 /*
