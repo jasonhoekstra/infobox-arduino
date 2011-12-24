@@ -14,6 +14,7 @@ int backLight = 7;
 int pointer = 0;
 unsigned long changedTime = 0;
 unsigned long pageTime = 0;
+unsigned long refreshTime = 0;
 
 static boolean rotating=false;
 static boolean sent=false;
@@ -95,7 +96,8 @@ void loop() {
     pageTime=millis()+10000;
   }
   
-  if (update && (changedTime+2) < (millis() / 1000)) {
+  if ((update && (changedTime+2) < (millis() / 1000)) || refreshTime+300000 < millis()) {
+    refreshTime=millis();
     clearDisplayBuffer();
     lcd.clear();
     lcd.setCursor(0,0);
@@ -138,6 +140,7 @@ void loop() {
 }
 
 void displayMessage(byte i) {
+  refreshTime=millis();
   lcd.clear();
   lcd.setCursor(0,0);
   lcd.print("Change to:");
