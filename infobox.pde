@@ -28,8 +28,8 @@ byte indexPage=0;
 byte mac[] = { 
   0x90, 0xA2, 0xDA, 0x00, 0x8D, 0xB5 };
 byte server[] = { 
-  192,168,1,65 };
-  //173,203,125,200 }; // jasonhoekstra.com  //infoserver/weather.php
+  //192,168,1,65 }; // local dev
+  173,203,125,200 }; // infobox.betaspaces.com  //infoserver/weather.php
 Client client(server, 80);
 
 void setup() {
@@ -59,7 +59,9 @@ void setup() {
   const byte* ipAddr = EthernetDHCP.ipAddress();
   lcd.print(ip_to_str(ipAddr));
   lcd.print("         "); // just in case there is junk left over
-  /////////////////////////////////////////////delay(5000);
+  delay(1000);
+  displayMessage(0);
+  update=true;
 }
 
 void changeLCD() {  
@@ -94,6 +96,7 @@ void loop() {
   }
   
   if (update && (changedTime+2) < (millis() / 1000)) {
+    clearDisplayBuffer();
     lcd.clear();
     lcd.setCursor(0,0);
     lcd.print("Updating ");
@@ -170,16 +173,17 @@ void getPage(String page) {
   if (sent == false) {
     sent = true;
     if (client.connect()) {
-          client.print("GET /infoserver/");
+          client.print("GET /infoserver/v1/");
           client.print(page);
           client.println(".php HTTP/1.0");
     }  
-  client.println("Host: infobox.jasonhoekstra.com");
+  client.println("Host: infobox.betaspaces.com");
   client.println();
   }    
 }  
 
 void writeString(String str) {
+  if (str.length() > 0) {
   lcd.clear();
   lcd.setCursor(0,0);
   
@@ -187,9 +191,9 @@ void writeString(String str) {
     lcd.print(str);
   }
   else {
-    byte line=0;
-    byte chars=0;
-    for (byte i=0; i<str.length() && i<80; i++)
+    int line=0;
+    int chars=0;
+    for (int i=0; i<str.length() && i<80; i++)
     {
       if (str[i]=='^') {
         line++;
@@ -197,26 +201,29 @@ void writeString(String str) {
         lcd.setCursor(0,line);
       } else {
         if (chars==20) {
-          chars=0;
+          chars=1;
           line++;
           lcd.setCursor(0,line);
+          Serial.print("  char: ");
+          Serial.print(chars);
+          Serial.print("  line: ");
+          Serial.print(' ');
+          Serial.println(line);          
         } 
         else { 
           chars++; 
+          Serial.print("  char: ");
+          Serial.println(chars);
+
         }    
         lcd.print(str[i]);    
+        Serial.println(str[i]);
       }
     }
-  }
+  } }
 }
 
-void extractDisplayString(String str) {
-  for (byte y=0; y<5; y++) {
-    for (byte x=0; x<80; x++) {
-      displayItems[y][x] = 0;
-    }
-  }
-  
+void extractDisplayString(String str) {  
   int charpos = 0;
   int disppos = 0;
   
@@ -238,3 +245,10 @@ void extractDisplayString(String str) {
   }
 }
 
+void clearDisplayBuffer() {
+  for (byte y=0; y<5; y++) {
+    for (byte x=0; x<80; x++) {
+      displayItems[y][x] = 0;
+    }
+  }
+}
