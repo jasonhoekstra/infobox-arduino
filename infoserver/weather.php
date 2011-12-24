@@ -19,21 +19,21 @@ if (empty($weather)) {
 $output = getCurrent($weather);
 
 print '#@!';
-print $output[0];
+print cleanString($output[0]);
 print '^';
-print $output[1];
+print cleanString($output[1]);
 print '^';
-print $output[2];
+print cleanString($output[2]);
 print '^';
-print $output[3];
+print cleanString($output[3]);
 print '|';
-print getForecast($weather, 0);
+print cleanString(getForecast($weather, 0));
 print '|';
-print getForecast($weather, 1);
+print cleanString(getForecast($weather, 1));
 print '|';
-print getForecast($weather, 2);
+print cleanString(getForecast($weather, 2));
 print '|';
-print getForecast($weather, 3);
+print cleanString(getForecast($weather, 3));
 
 //print json_encode($output);
 
@@ -41,7 +41,12 @@ function getCurrent($weather) {
   $current_observation = $weather->{'current_observation'};
   $observation_time = date_parse($current_observation->{'observation_time_rfc822'});
   $hour = $observation_time['hour'];
-  if ($hour > 11) { $hour=$hour-12; $time_des='pm'; } else { $time_des='am'; }
+  if ($hour > 11) { 
+    if ($hour > 12) { $hour=$hour-12; }
+    $time_des='pm';    
+  } else { 
+    $time_des='am';
+  }
   $time_string = $hour.':'.$observation_time['minute'].$time_des;
 
   $temp_f = round($current_observation->{'temp_f'},0);

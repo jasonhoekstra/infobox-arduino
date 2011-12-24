@@ -15,8 +15,16 @@ if (empty($slashdot)) {
 
  //krumo($slashdot);
  //krumo($slashdot->items[0]['title']);
+
+$output='#@!';
+
+for ($i=0; $i<5; $i++) {
+  $item = cleanString($slashdot->items[$i]['title']);
+  $output=$output.$item;
+  if ($i != 4) { $output=$output.'|'; }
+}
  
- print '#@!'.$slashdot->items[0]['title'];
+ print $output;
  
 //$output = getCurrent($weather);
 

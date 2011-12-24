@@ -13,13 +13,17 @@ LiquidCrystal lcd(3,8,4,5,6,9);  // (rs, enable, d4, d5, d6, d7)
 int backLight = 7;
 int pointer = 0;
 unsigned long changedTime = 0;
+unsigned long pageTime = 0;
 
 static boolean rotating=false;
 static boolean sent=false;
 static boolean update=false;
 static boolean receiving=false;
 String buffer = "";
-char* displayItems[] = {"","","","",""};
+char displayItems[5][81];
+byte displayPages=-1;
+byte indexPage=0;
+
 
 byte mac[] = { 
   0x90, 0xA2, 0xDA, 0x00, 0x8D, 0xB5 };
@@ -78,6 +82,17 @@ void loop() {
     update=true;
   }
   
+  if (!rotating && !update && displayPages>=0 && millis()>pageTime) {
+    if (indexPage >= displayPages) {
+      indexPage=0;
+    }
+    else {
+      indexPage++;
+    }
+    writeString(displayItems[indexPage]);
+    pageTime=millis()+10000;
+  }
+  
   if (update && (changedTime+2) < (millis() / 1000)) {
     lcd.clear();
     lcd.setCursor(0,0);
@@ -109,11 +124,10 @@ void loop() {
   if (!client.connected() && sent) {
     sent=false;
     receiving=false;
-    lcd.clear();
-    //Serial.println(buffer);
     if (buffer.length() > 0) { 
-      writeString(buffer);
       extractDisplayString(buffer);
+      writeString(displayItems[0]);
+      pageTime=millis()+10000;
     }
     buffer="";
     client.stop();
@@ -127,7 +141,6 @@ void displayMessage(byte i) {
   lcd.setCursor(0,2);
   lcd.print(getService(i));  
   lcd.setCursor(0,3);
-  //lcd.print(memoryTest());
 }
 
 const char* ip_to_str(const uint8_t* ipAddr) {
@@ -198,54 +211,30 @@ void writeString(String str) {
 }
 
 void extractDisplayString(String str) {
-  
-  for (byte clean=0; clean < 5; clean++) {
-    displayItems[clean]="";
+  for (byte y=0; y<5; y++) {
+    for (byte x=0; x<80; x++) {
+      displayItems[y][x] = 0;
+    }
   }
   
-  byte charpos = 0;
-  byte disppos = 0;
-  String temp = "";
+  int charpos = 0;
+  int disppos = 0;
   
   if (str.length() > 0) {
-    for (byte index=0; index<str.length() && index<400 && disppos<5; index++) {
-      if (str[index]=='|') {
-        temp.toCharArray(displayItems[disppos], temp.length()); 
+    for (int index=0; index<str.length() && disppos<6; index++) {
+      if (str[index]=='|' || charpos==80) {    
+        displayItems[disppos][charpos]=0;
         charpos=0;
         disppos++;
-        Serial.print("Writing ");
-        Serial.println(disppos);
-        Serial.println(temp);
       }
       else {
-        temp=temp+str[index];
+        displayItems[disppos][charpos]=str[index];
+        charpos++;
       }
     }
-    temp.toCharArray(displayItems[disppos], temp.length());  
+    displayItems[disppos][charpos]=0;
+    displayPages=disppos;
     
-    Serial.println(displayItems[0]);
-    Serial.println(displayItems[1]);
-    Serial.println(displayItems[2]);
-    Serial.println(displayItems[3]);
-    Serial.println(displayItems[4]);
   }
 }
 
-/*
-// this function will return the number of bytes currently free in RAM
-int memoryTest() {
-  int byteCounter = 0; // initialize a counter
-  byte *byteArray; // create a pointer to a byte array
-  // More on pointers here: http://en.wikipedia.org/wiki/Pointer#C_pointers
-
-  // use the malloc function to repeatedly attempt allocating a certain number of bytes to memory
-  // More on malloc here: http://en.wikipedia.org/wiki/Malloc
-  while ( (byteArray = (byte*) malloc (byteCounter * sizeof(byte))) != NULL ) {
-    byteCounter++; // if allocation was successful, then up the count for the next try
-    free(byteArray); // free memory after allocating it
-  }
-  
-  free(byteArray); // also free memory after the function finishes
-  return byteCounter; // send back the highest number of bytes successfully allocated
-}
-*/
