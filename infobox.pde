@@ -20,9 +20,13 @@ static boolean rotating=false;
 static boolean sent=false;
 static boolean update=false;
 static boolean receiving=false;
+static boolean haveMenuItems=false;
+
+String menuItems = "";
 String buffer = "";
 char displayItems[5][81];
 byte displayPages=-1;
+byte numMenuItems=0;
 byte indexPage=0;
 
 
@@ -35,13 +39,13 @@ Client client(server, 80);
 
 void setup() {
   Serial.begin(9600);
-  lcd.begin(20,4);
-  
+
+  // Prepare rotary encoder
   pinMode(2, INPUT); 
   digitalWrite(2, HIGH);
-  attachInterrupt(0, changeLCD, CHANGE);
-
-  delay(1000);
+  
+  // Boot up LCD
+  lcd.begin(20,4);
   pinMode(backLight, OUTPUT);
   digitalWrite(backLight, HIGH);
   lcd.clear();
@@ -51,18 +55,24 @@ void setup() {
   lcd.print("Booting up...");
   ////////////////////////////////////////////////delay(5000);
 
+  // Find IP address via DHCP
   lcd.setCursor(0,3);
   lcd.print("Finding IP address..");
   EthernetDHCP.begin(mac); // this is a blocking call
 
+  // Display IP address
   lcd.setCursor(0,3);
   lcd.print("IP:");
   const byte* ipAddr = EthernetDHCP.ipAddress();
   lcd.print(ip_to_str(ipAddr));
   lcd.print("         "); // just in case there is junk left over
   delay(1000);
-  displayMessage(0);
-  update=true;
+  
+  // Get menu items
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print("Downloading services");
+  delay(5000);
 }
 
 void changeLCD() {  
@@ -70,7 +80,8 @@ void changeLCD() {
 }
 
 void loop() {
-  while(rotating) {
+  // Change the menu while the encoder is rotating
+  while(haveMenuItems && rotating) {
     delay(500);
     lcd.clear();
 
@@ -79,13 +90,30 @@ void loop() {
       pointer=0;
 
     displayMessage(pointer);
+    lcd.setCursor(0,3);
+    //lcd.print(memoryTest()); //DEBUG: show free memory
 
     rotating=false;
     changedTime = millis()/1000;
     update=true;
   }
   
-  if (!rotating && !update && displayPages>=0 && millis()>pageTime) {
+  // Request menu items from server
+  if (!haveMenuItems && !sent) {
+    sent=true;
+    if (client.connect()) {
+      client.println("GET /infoserver/v1/services.php HTTP/1.0");
+      client.println("Host: infobox.betaspaces.com");
+      client.println();
+    } else {
+      lcd.clear();
+      lcd.setCursor(0,0);
+      lcd.print("Cannot get services.");
+      sent=false;
+    }
+  }
+  
+  if (haveMenuItems && !rotating && !update && displayPages>=0 && millis()>pageTime) {
     if (indexPage >= displayPages) {
       indexPage=0;
     }
@@ -96,7 +124,7 @@ void loop() {
     pageTime=millis()+10000;
   }
   
-  if ((update && (changedTime+2) < (millis() / 1000)) || refreshTime+300000 < millis()) {
+  if ((haveMenuItems && update && (changedTime+2) < (millis() / 1000)) || refreshTime+300000 < millis()) {
     refreshTime=millis();
     clearDisplayBuffer();
     lcd.clear();
@@ -129,10 +157,41 @@ void loop() {
   if (!client.connected() && sent) {
     sent=false;
     receiving=false;
-    if (buffer.length() > 0) { 
-      extractDisplayString(buffer);
-      writeString(displayItems[0]);
-      pageTime=millis()+10000;
+    if (haveMenuItems) { 
+      // If we have menu items, this is an info update
+      if (buffer.length() > 0) {
+        extractDisplayString(buffer);
+        writeString(displayItems[0]);
+        pageTime=millis()+10000;
+      }
+    } else {
+      // Else, we should get the menu items.
+      if (buffer.length() > 0) {
+        menuItems=buffer;
+        buffer="";
+        Serial.println(menuItems);
+        haveMenuItems=true;
+        
+        for (int i=0; i<menuItems.length(); i++) {
+          if (menuItems[i] == ',') {
+            numMenuItems++;
+          }
+        }
+        
+        numMenuItems++;
+        
+        // Update to the first panel
+        displayMessage(0);
+        update=true;
+        
+        // Enable the encoder
+        attachInterrupt(0, changeLCD, CHANGE);
+      } else {
+        lcd.clear();
+        lcd.setCursor(0,0);
+        lcd.println("Unable to download");
+        lcd.println("services...");
+      }
     }
     buffer="";
     client.stop();
@@ -207,20 +266,11 @@ void writeString(String str) {
           chars=1;
           line++;
           lcd.setCursor(0,line);
-          Serial.print("  char: ");
-          Serial.print(chars);
-          Serial.print("  line: ");
-          Serial.print(' ');
-          Serial.println(line);          
         } 
         else { 
           chars++; 
-          Serial.print("  char: ");
-          Serial.println(chars);
-
         }    
         lcd.print(str[i]);    
-        Serial.println(str[i]);
       }
     }
   } }
@@ -244,7 +294,6 @@ void extractDisplayString(String str) {
     }
     displayItems[disppos][charpos]=0;
     displayPages=disppos;
-    
   }
 }
 
@@ -255,3 +304,22 @@ void clearDisplayBuffer() {
     }
   }
 }
+
+/*
+// this function will return the number of bytes currently free in RAM
+int memoryTest() {
+  int byteCounter = 0; // initialize a counter
+  byte *byteArray; // create a pointer to a byte array
+  // More on pointers here: http://en.wikipedia.org/wiki/Pointer#C_pointers
+
+  // use the malloc function to repeatedly attempt allocating a certain number of bytes to memory
+  // More on malloc here: http://en.wikipedia.org/wiki/Malloc
+  while ( (byteArray = (byte*) malloc (byteCounter * sizeof(byte))) != NULL ) {
+    byteCounter++; // if allocation was successful, then up the count for the next try
+    free(byteArray); // free memory after allocating it
+  }
+  
+  free(byteArray); // also free memory after the function finishes
+  return byteCounter; // send back the highest number of bytes successfully allocated
+}
+*/
