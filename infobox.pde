@@ -92,7 +92,7 @@ void loop() {
 
     displayMessage(pointer);
     lcd.setCursor(0,3);
-    //lcd.print(memoryTest()); //DEBUG: show free memory
+    lcd.print(memoryTest()); //DEBUG: show free memory
 
     rotating=false;
     changedTime = millis()/1000;
@@ -169,8 +169,8 @@ void loop() {
         int disppos = 0;
         
         // Extract pages of information from buffer
-        for (int index=0; index<buffer.length() && disppos<6; index++) {
-          if (buffer[index]=='|' || charpos==80 || (index==buffer.length()-1)) {  
+        for (int index=0; index<=buffer.length() && disppos<6; index++) {
+          if (buffer[index]=='|' || charpos==80 || (index==buffer.length())) {  
             displayItems[disppos][charpos]=0;
             charpos=0;
             disppos++;
@@ -298,7 +298,7 @@ void clearDisplayBuffer() {
   }
 }
 
-/*
+
 // this function will return the number of bytes currently free in RAM
 int memoryTest() {
   int byteCounter = 0; // initialize a counter
@@ -315,4 +315,4 @@ int memoryTest() {
   free(byteArray); // also free memory after the function finishes
   return byteCounter; // send back the highest number of bytes successfully allocated
 }
-*/
+
