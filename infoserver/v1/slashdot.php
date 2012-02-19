@@ -1,8 +1,6 @@
 <?php 
 
-//ini_set('display_errors', '1');
 require_once('magpierss/rss_fetch.inc');
-include("class.krumo.php");
 include("_utility.php");
 
 $slashdot = apc_fetch('slashdot');
@@ -10,11 +8,8 @@ $slashdot = apc_fetch('slashdot');
 
 if (empty($slashdot)) {
   $slashdot = fetch_rss('http://rss.slashdot.org/Slashdot/slashdot');
-  apc_store('slashdot', $slashdot, 300);
+  apc_store('slashdot', $slashdot, $cache_time);
 }
-
- //krumo($slashdot);
- //krumo($slashdot->items[0]['title']);
 
 $output='#@!';
 
@@ -25,8 +20,5 @@ for ($i=0; $i<5; $i++) {
 }
  
  print $output;
- 
-//$output = getCurrent($weather);
-
 
 ?>

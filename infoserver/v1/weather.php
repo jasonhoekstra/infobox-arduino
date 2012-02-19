@@ -2,15 +2,16 @@
 
 error_reporting(E_ALL);
 ini_set('display_errors', '1');
-include("class.krumo.php");
+//include("class.krumo.php");
 include("_utility.php");
 
+$cache_time = constant("CACHE_TIME");
 $weather = apc_fetch('weather');
 
 if (empty($weather)) {
   $json_string = file_get_contents("http://api.wunderground.com/api/6f810757d81265d0/geolookup/conditions/forecast/q/94703.json");
   $weather = json_decode($json_string);
-  apc_store('weather', $weather, 300);
+  apc_store('weather', $weather, $cache_time);
 }
 
  //krumo($weather);

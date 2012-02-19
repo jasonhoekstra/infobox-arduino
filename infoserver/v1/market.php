@@ -1,18 +1,18 @@
 <?php 
 
 //ini_set('display_errors', '1');
-include("class.krumo.php");
+//include("class.krumo.php");
 include("_utility.php");
+$cache_time = constant("CACHE_TIME");
 
 $market = apc_fetch('market');
 
 if (empty($market)) {  
   $dataArray = get_url('http://finance.yahoo.com/d/quotes.csv?s=^IXIC+GOOG+MSFT+AAPL+IBM&f=snd1t1l1c1p2');
   $market = CSV_to_array($dataArray[0]);
-  apc_store('market', $market, 300);
+  apc_store('market', $market, $cache_time);
 }  
 
-  krumo($market);
  
  print '#@!';
  

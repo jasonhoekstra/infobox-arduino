@@ -1,5 +1,7 @@
 <?php
 
+define("CACHE_TIME", 300);
+
 function balanceString($string1, $string2, $length)  {
   $len1 = strlen($string1);
   $len2 = strlen($string2);
@@ -19,9 +21,10 @@ function cleanString($string1) {
   $string1=str_replace('^', '', $string1);
   $string1=str_replace('|','',$string1);
   $string1=str_replace('"','',$string1);
+  $string1=str_replace('\'','',$string1);
   $string1=str_replace('\n','',$string1);
   $string1=str_replace('\r','',$string1);
-  return $string1;
+  return substr(trim($string1),0,80);
   
 }
 
