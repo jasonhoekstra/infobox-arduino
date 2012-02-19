@@ -10,8 +10,8 @@
 #include <EthernetDHCP.h>
 
 LiquidCrystal lcd(3,8,4,5,6,9);  // (rs, enable, d4, d5, d6, d7) 
-int backLight = 7;
-int pointer = 0;
+static int backLight = 7;
+static int pointer = 0;
 unsigned long changedTime = 0;
 unsigned long pageTime = 0;
 unsigned long refreshTime = 0;
@@ -22,23 +22,23 @@ static boolean update=false;
 static boolean receiving=false;
 static boolean haveMenuItems=false;
 
-String menuItems = "";
 String buffer = "";
-char displayItems[5][81];
-byte displayPages=-1;
-byte numMenuItems=0;
-byte indexPage=0;
+char displayItems[5][81]; // buffer for info retrieved from web
+static int displayPages=-1;
+static int numMenuItems=0;
+String menuItemString = "";
+char menuItems[10][10]; // max of 10 items, 10 chars long (TODO: would be great to do this as a dynamic list)
+static int indexPage=0;
 
 
 byte mac[] = { 
   0x90, 0xA2, 0xDA, 0x00, 0x8D, 0xB5 };
 byte server[] = { 
-  //192,168,1,65 }; // local dev
   173,203,125,200 }; // infobox.betaspaces.com  //infoserver/weather.php
 Client client(server, 80);
 
 void setup() {
-  Serial.begin(9600);
+  //Serial.begin(9600);
 
   // Prepare rotary encoder
   pinMode(2, INPUT); 
@@ -86,8 +86,9 @@ void loop() {
     lcd.clear();
 
     pointer++;
-    if (pointer > 3)
+    if (pointer > numMenuItems) {
       pointer=0;
+    }
 
     displayMessage(pointer);
     lcd.setCursor(0,3);
@@ -113,6 +114,7 @@ void loop() {
     }
   }
   
+  // Change the menu page once it stops rotating
   if (haveMenuItems && !rotating && !update && displayPages>=0 && millis()>pageTime) {
     if (indexPage >= displayPages) {
       indexPage=0;
@@ -124,6 +126,7 @@ void loop() {
     pageTime=millis()+10000;
   }
   
+  // Get an info update from the web
   if ((haveMenuItems && update && (changedTime+2) < (millis() / 1000)) || refreshTime+300000 < millis()) {
     refreshTime=millis();
     clearDisplayBuffer();
@@ -135,9 +138,10 @@ void loop() {
     update = false;    
   }
   
+  // If inbound traffic, add it to a buffer
   if (client.available()) {
     char c = client.read();
-    //Serial.print(c);
+    // Serial.print(c);
     if (!receiving) {
       if (c == '#') {
         c = client.read();
@@ -160,26 +164,48 @@ void loop() {
     if (haveMenuItems) { 
       // If we have menu items, this is an info update
       if (buffer.length() > 0) {
-        extractDisplayString(buffer);
+      
+        int charpos = 0;
+        int disppos = 0;
+        
+        // Extract pages of information from buffer
+        for (int index=0; index<buffer.length() && disppos<6; index++) {
+          if (buffer[index]=='|' || charpos==80 || (index==buffer.length()-1)) {  
+            displayItems[disppos][charpos]=0;
+            charpos=0;
+            disppos++;
+          }
+          else {
+            displayItems[disppos][charpos]=buffer[index];
+            charpos++;
+          }
+        }
+        displayItems[disppos][charpos]=0;
+        displayPages=disppos;
+
         writeString(displayItems[0]);
         pageTime=millis()+10000;
       }
     } else {
       // Else, we should get the menu items.
       if (buffer.length() > 0) {
-        menuItems=buffer;
+        menuItemString=buffer;
         buffer="";
-        Serial.println(menuItems);
         haveMenuItems=true;
         
-        for (int i=0; i<menuItems.length(); i++) {
-          if (menuItems[i] == ',') {
+        int tick=0;
+        for (int i=0; i<menuItemString.length(); i++) {
+          if (menuItemString[i] == ',' || i == (menuItemString.length())-1) {
             numMenuItems++;
+            tick=0;
+          } else {
+            menuItems[numMenuItems][tick] = menuItemString[i];
+            tick++;
           }
         }
         
-        numMenuItems++;
-        
+        numMenuItems--;
+                
         // Update to the first panel
         displayMessage(0);
         update=true;
@@ -215,20 +241,7 @@ const char* ip_to_str(const uint8_t* ipAddr) {
 }
 
 String getService(byte i) {
-  switch (i) {
-  case 0:
-    return "Weather";
-    break;
-  case 1: 
-    return "Slashdot";
-    break;
-  case 2: 
-    return "Twitter";
-    break;
-  case 3: 
-    return "Market";
-    break;
-  }  
+  return menuItems[i]; 
 }
 
 void getPage(String page) {
@@ -276,26 +289,6 @@ void writeString(String str) {
   } }
 }
 
-void extractDisplayString(String str) {  
-  int charpos = 0;
-  int disppos = 0;
-  
-  if (str.length() > 0) {
-    for (int index=0; index<str.length() && disppos<6; index++) {
-      if (str[index]=='|' || charpos==80) {    
-        displayItems[disppos][charpos]=0;
-        charpos=0;
-        disppos++;
-      }
-      else {
-        displayItems[disppos][charpos]=str[index];
-        charpos++;
-      }
-    }
-    displayItems[disppos][charpos]=0;
-    displayPages=disppos;
-  }
-}
 
 void clearDisplayBuffer() {
   for (byte y=0; y<5; y++) {
